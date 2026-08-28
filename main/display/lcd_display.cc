@@ -1258,7 +1258,9 @@ void LcdDisplay::SetTheme(Theme* theme) {
     lv_obj_set_style_text_color(notification_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(mute_label_, lvgl_theme->text_color(), 0);
     lv_obj_set_style_text_color(battery_label_, lvgl_theme->text_color(), 0);
-    lv_obj_set_style_text_color(emoji_label_, lvgl_theme->text_color(), 0);
+    if (emoji_label_ != nullptr) {  // null when the KITT visualizer replaces the face
+        lv_obj_set_style_text_color(emoji_label_, lvgl_theme->text_color(), 0);
+    }
 
     // If we have the chat message style, update all message bubbles
 #if CONFIG_USE_WECHAT_MESSAGE_STYLE
