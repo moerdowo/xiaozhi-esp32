@@ -8,7 +8,11 @@
             "sdkconfig_append": [
                 "CONFIG_USE_WECHAT_MESSAGE_STYLE=n",
                 "CONFIG_USE_DEVICE_AEC=y",
-                "CONFIG_LANGUAGE_EN_US=y"
+                "CONFIG_LANGUAGE_EN_US=y",
+                "CONFIG_USE_CUSTOM_WAKE_WORD=y",
+                "CONFIG_CUSTOM_WAKE_WORD=\"hi kitt\"",
+                "CONFIG_CUSTOM_WAKE_WORD_DISPLAY=\"Hi KITT\"",
+                "CONFIG_SR_MN_EN_MULTINET7_QUANT=y"
             ]
         }
     ]
