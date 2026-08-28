@@ -21,9 +21,6 @@ public:
     KittVisualizer(const KittVisualizer&) = delete;
     KittVisualizer& operator=(const KittVisualizer&) = delete;
 
-    // Base colour of the lit segments. Defaults to KITT red.
-    void SetColor(lv_color_t color);
-
 private:
     static constexpr int kClusters = 3;
     static constexpr int kBarsPerCluster = 7;
@@ -37,7 +34,6 @@ private:
     lv_obj_t* root_ = nullptr;
     lv_obj_t* bars_[kBarCount] = {};
     lv_timer_t* timer_ = nullptr;
-    lv_color_t color_;
 
     uint8_t last_opa_[kBarCount] = {};
     float cluster_level_[kClusters] = {};

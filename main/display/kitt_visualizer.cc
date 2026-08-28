@@ -7,6 +7,9 @@
 
 namespace {
 
+// The one colour knob: KITT is red in every state, idle sweep and speech alike.
+constexpr uint32_t kKittRed = 0xFF1A00;
+
 constexpr uint32_t kFrameIntervalMs = 33;  // ~30 fps
 constexpr uint32_t kScanPeriodMs = 900;    // one end-to-end sweep, as on the show's prop
 
@@ -16,8 +19,6 @@ constexpr float kFloorOpa = 28.0f;
 }  // namespace
 
 KittVisualizer::KittVisualizer(lv_obj_t* parent, int width, int height) {
-    color_ = lv_color_hex(0xFF1A00);
-
     root_ = lv_obj_create(parent);
     lv_obj_set_size(root_, width, height);
     lv_obj_center(root_);
@@ -47,7 +48,7 @@ KittVisualizer::KittVisualizer(lv_obj_t* parent, int width, int height) {
             lv_obj_set_style_radius(bar, bar_w / 3, 0);
             lv_obj_set_style_border_width(bar, 0, 0);
             lv_obj_set_style_pad_all(bar, 0, 0);
-            lv_obj_set_style_bg_color(bar, color_, 0);
+            lv_obj_set_style_bg_color(bar, lv_color_hex(kKittRed), 0);
             lv_obj_set_style_bg_opa(bar, LV_OPA_TRANSP, 0);
             lv_obj_set_scrollbar_mode(bar, LV_SCROLLBAR_MODE_OFF);
             lv_obj_remove_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
@@ -71,15 +72,6 @@ KittVisualizer::~KittVisualizer() {
     }
     if (root_ != nullptr) {
         lv_obj_delete(root_);  // deletes the bars with it
-    }
-}
-
-void KittVisualizer::SetColor(lv_color_t color) {
-    color_ = color;
-    for (lv_obj_t* bar : bars_) {
-        if (bar != nullptr) {
-            lv_obj_set_style_bg_color(bar, color_, 0);
-        }
     }
 }
 

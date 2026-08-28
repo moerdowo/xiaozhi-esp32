@@ -1095,38 +1095,13 @@ void LcdDisplay::ClearChatMessages() {
 }
 #endif
 
-namespace {
-
-/* KITT only ever had red lamps; the mood shifts hue rather than shape. */
-lv_color_t KittColorForEmotion(const char* emotion) {
-    if (emotion == nullptr) {
-        return lv_color_hex(0xFF1A00);
-    }
-    if (strcmp(emotion, "angry") == 0) {
-        return lv_color_hex(0xFF0000);
-    }
-    if (strcmp(emotion, "sad") == 0 || strcmp(emotion, "crying") == 0 ||
-        strcmp(emotion, "sleepy") == 0) {
-        return lv_color_hex(0x8C1400);
-    }
-    if (strcmp(emotion, "happy") == 0 || strcmp(emotion, "laughing") == 0 ||
-        strcmp(emotion, "funny") == 0 || strcmp(emotion, "loving") == 0) {
-        return lv_color_hex(0xFF7A00);
-    }
-    return lv_color_hex(0xFF1A00);
-}
-
-}  // namespace
-
 void LcdDisplay::SetEmotion(const char* emotion) {
     if (!setup_ui_called_) {
         ESP_LOGW(TAG, "SetEmotion('%s') called before SetupUI() - emotion will not be displayed!",
                  emotion);
     }
     if (kitt_ != nullptr) {
-        DisplayLockGuard lock(this);
-        kitt_->SetColor(KittColorForEmotion(emotion));
-        return;
+        return;  // KITT stays red in every mood; nothing to redraw
     }
     if (emoji_image_ == nullptr) {
         if (setup_ui_called_) {
