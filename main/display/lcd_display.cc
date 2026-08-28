@@ -292,6 +292,9 @@ MipiLcdDisplay::MipiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel
 LcdDisplay::~LcdDisplay() {
     SetPreviewImage(nullptr);
 
+    // Owns LVGL objects parented to emoji_box_, so it has to go first.
+    kitt_.reset();
+
     // Clean up GIF controller
     if (gif_controller_) {
         gif_controller_->Stop();
@@ -831,7 +834,6 @@ void LcdDisplay::SetupUI() {
     LvglTheme* lvgl_theme = static_cast<LvglTheme*>(current_theme_);
     auto text_font = lvgl_theme->text_font()->font();
     auto icon_font = lvgl_theme->icon_font()->font();
-    auto large_icon_font = lvgl_theme->large_icon_font()->font();
 
     auto screen = lv_screen_active();
     lv_obj_set_style_text_font(screen, text_font, 0);
@@ -847,22 +849,18 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_bg_color(container_, lvgl_theme->background_color(), 0);
     lv_obj_set_style_border_color(container_, lvgl_theme->border_color(), 0);
 
-    /* Bottom layer: emoji_box_ - centered display */
+    /* Bottom layer: emoji_box_ - hosts the KITT visualizer instead of an emoji face.
+       emoji_label_ / emoji_image_ stay null; SetEmotion() drives the bar colour. */
     emoji_box_ = lv_obj_create(screen);
-    lv_obj_set_size(emoji_box_, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_size(emoji_box_, LV_HOR_RES, LV_VER_RES / 3);
     lv_obj_set_style_bg_opa(emoji_box_, LV_OPA_TRANSP, 0);
     lv_obj_set_style_pad_all(emoji_box_, 0, 0);
     lv_obj_set_style_border_width(emoji_box_, 0, 0);
+    lv_obj_set_scrollbar_mode(emoji_box_, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_remove_flag(emoji_box_, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align(emoji_box_, LV_ALIGN_CENTER, 0, 0);
 
-    emoji_label_ = lv_label_create(emoji_box_);
-    lv_obj_set_style_text_font(emoji_label_, large_icon_font, 0);
-    lv_obj_set_style_text_color(emoji_label_, lvgl_theme->text_color(), 0);
-    lv_label_set_text(emoji_label_, MATERIAL_SYMBOLS_ROBOT_2);
-
-    emoji_image_ = lv_img_create(emoji_box_);
-    lv_obj_center(emoji_image_);
-    lv_obj_add_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
+    kitt_ = std::make_unique<KittVisualizer>(emoji_box_, LV_HOR_RES, LV_VER_RES / 3);
 
     /* Middle layer: preview_image_ - centered display */
     preview_image_ = lv_image_create(screen);
@@ -1097,10 +1095,38 @@ void LcdDisplay::ClearChatMessages() {
 }
 #endif
 
+namespace {
+
+/* KITT only ever had red lamps; the mood shifts hue rather than shape. */
+lv_color_t KittColorForEmotion(const char* emotion) {
+    if (emotion == nullptr) {
+        return lv_color_hex(0xFF1A00);
+    }
+    if (strcmp(emotion, "angry") == 0) {
+        return lv_color_hex(0xFF0000);
+    }
+    if (strcmp(emotion, "sad") == 0 || strcmp(emotion, "crying") == 0 ||
+        strcmp(emotion, "sleepy") == 0) {
+        return lv_color_hex(0x8C1400);
+    }
+    if (strcmp(emotion, "happy") == 0 || strcmp(emotion, "laughing") == 0 ||
+        strcmp(emotion, "funny") == 0 || strcmp(emotion, "loving") == 0) {
+        return lv_color_hex(0xFF7A00);
+    }
+    return lv_color_hex(0xFF1A00);
+}
+
+}  // namespace
+
 void LcdDisplay::SetEmotion(const char* emotion) {
     if (!setup_ui_called_) {
         ESP_LOGW(TAG, "SetEmotion('%s') called before SetupUI() - emotion will not be displayed!",
                  emotion);
+    }
+    if (kitt_ != nullptr) {
+        DisplayLockGuard lock(this);
+        kitt_->SetColor(KittColorForEmotion(emotion));
+        return;
     }
     if (emoji_image_ == nullptr) {
         if (setup_ui_called_) {

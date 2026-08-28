@@ -1,6 +1,33 @@
 #include "audio_service.h"
 #include <esp_log.h>
 #include <cstring>
+#include <algorithm>
+#include <cmath>
+
+namespace {
+
+/* Peak of a subsampled window: enough to drive a UI meter, and far cheaper than
+   a full-frame RMS inside the audio tasks. kLevelShift is the calibration knob -
+   lower it if the meter never reaches full scale on quiet hardware. */
+constexpr int kLevelShift = 6;
+
+uint8_t ComputeAudioLevel(const std::vector<int16_t>& pcm, int channels) {
+    if (pcm.empty()) {
+        return 0;
+    }
+    size_t step = channels > 0 ? static_cast<size_t>(channels) : 1;
+    size_t stride = std::max(step, (pcm.size() / 64 / step) * step);
+    uint32_t peak = 0;
+    for (size_t i = 0; i < pcm.size(); i += stride) {
+        uint32_t v = static_cast<uint32_t>(std::abs(static_cast<int>(pcm[i])));
+        if (v > peak) {
+            peak = v;
+        }
+    }
+    return static_cast<uint8_t>(std::min<uint32_t>(255, peak >> kLevelShift));
+}
+
+}  // namespace
 
 #define RATE_CVT_CFG(_src_rate, _dest_rate, _channel)        \
     (esp_ae_rate_cvt_cfg_t)                                  \
@@ -218,6 +245,9 @@ bool AudioService::ReadAudioData(std::vector<int16_t>& data, int sample_rate, in
         }
     }
 
+    input_level_.store(ComputeAudioLevel(data, codec_->input_channels()),
+                       std::memory_order_relaxed);
+
     /* Update the last input time */
     last_input_time_ = std::chrono::steady_clock::now();
     debug_statistics_.input_count++;
@@ -337,6 +367,7 @@ void AudioService::AudioOutputTask() {
             callbacks_.on_playback_progress(task->playback_id, task->media_position_ms);
         }
 
+        output_level_.store(ComputeAudioLevel(task->pcm, 1), std::memory_order_relaxed);
         codec_->OutputData(task->pcm);
 
         /* Update the last output time */

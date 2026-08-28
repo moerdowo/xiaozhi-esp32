@@ -2,6 +2,7 @@
 #define LCD_DISPLAY_H
 
 #include "gif/lvgl_gif.h"
+#include "kitt_visualizer.h"
 #include "lvgl_display.h"
 
 #include <esp_lcd_panel_io.h>
@@ -28,6 +29,7 @@ protected:
     lv_obj_t* emoji_image_ = nullptr;
     std::unique_ptr<LvglGif> gif_controller_ = nullptr;
     lv_obj_t* emoji_box_ = nullptr;
+    std::unique_ptr<KittVisualizer> kitt_ = nullptr;
     lv_obj_t* chat_message_label_ = nullptr;
     esp_timer_handle_t preview_timer_ = nullptr;
     std::unique_ptr<LvglImage> preview_image_cached_ = nullptr;

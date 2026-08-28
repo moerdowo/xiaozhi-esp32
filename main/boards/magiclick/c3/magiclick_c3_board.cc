@@ -42,7 +42,9 @@ public:
 
         lv_obj_set_style_bg_color(content_, lv_color_black(), 0);
         lv_obj_set_style_border_width(content_, 0, 0);
-        lv_obj_set_style_text_color(emoji_label_, lv_color_white(), 0);
+        if (emoji_label_ != nullptr) {  // null when the KITT visualizer replaces the face
+            lv_obj_set_style_text_color(emoji_label_, lv_color_white(), 0);
+        }
         lv_obj_set_style_text_color(chat_message_label_, lv_color_white(), 0);
     }
 };

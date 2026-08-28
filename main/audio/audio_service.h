@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <atomic>
+#include <vector>
 #include <deque>
 #include <condition_variable>
 #include <chrono>
@@ -120,6 +121,10 @@ public:
     std::unique_ptr<AudioStreamPacket> PopWakeWordPacket();
     const std::string& GetLastWakeWord() const;
     bool IsVoiceDetected() const { return voice_detected_; }
+    /* Short-term 0..255 audio levels, for UI meters. Mic and speaker are
+       reported separately so the caller can pick by device state. */
+    uint8_t GetInputLevel() const { return input_level_.load(std::memory_order_relaxed); }
+    uint8_t GetOutputLevel() const { return output_level_.load(std::memory_order_relaxed); }
     bool IsIdle();
     bool IsPlaybackIdle();
     bool IsWakeWordRunning() const { return xEventGroupGetBits(event_group_) & AS_EVENT_WAKE_WORD_RUNNING; }
@@ -187,6 +192,8 @@ private:
 
     bool audio_engine_initialized_ = false;
     bool voice_detected_ = false;
+    std::atomic<uint8_t> input_level_{0};
+    std::atomic<uint8_t> output_level_{0};
 #if CONFIG_USE_DEVICE_AEC
     bool device_aec_enabled_ = true;
 #else
